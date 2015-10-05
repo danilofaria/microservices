@@ -1,0 +1,3 @@
+docker build -t df2553/students .
+docker run -d -e PORT=8081 -p 8081:8081 --link mongo1:mongo --name students1 df2553/students
+docker run -d -p 8080:8080 --link mongo1:mongo --name students2 df2553/students
