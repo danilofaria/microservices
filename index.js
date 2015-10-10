@@ -1,13 +1,26 @@
-var express = require('express');
-var app = express();
+var httpProxy = require('http-proxy')
+var _ = require('lodash');
 
-app.get('/', function (req, res) {
-  res.send('Hello World!');
-});
+var DEFAULT_PORT = 8000;
+var PORT = process.env.PORT || DEFAULT_PORT;
 
-var server = app.listen(3000, function () {
-  var host = server.address().address;
-  var port = server.address().port;
+var proxy = httpProxy.createProxy();
 
-  console.log('Example app listening at http://%s:%s', host, port);
-});
+var routes = {
+    'http://192.168.59.103:8081': /students\/[a-hA-H]/i,
+    'http://192.168.59.103:8082': /students\/[i-qI-Q]/i,
+    'http://192.168.59.103:8083': /students\/[r-zR-Z]/i,
+    'http://192.168.59.103:8084': /courses/i
+}
+
+
+require('http').createServer(function (req, res) {
+    var request_url = req.url,
+        routing_url = _.findKey(routes, function (regEx) {
+            return regEx.test(request_url);
+        });
+
+    proxy.web(req, res, {
+        target: routing_url
+    });
+}).listen(PORT);
