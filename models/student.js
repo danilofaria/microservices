@@ -5,6 +5,7 @@ var studentSchema = mongoose.Schema({
     lastName: String,
     uni: String,
 });
+studentSchema.index({ uni: 1}, { unique: true });
 var Student = mongoose.model('Student', studentSchema);
 
 module.exports = Student;
