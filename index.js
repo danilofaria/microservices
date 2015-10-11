@@ -30,6 +30,7 @@ var mongo_address = 'mongodb://' + MONGO_IP + ':' + MONGO_PORT + '/test';
 mongoose.connect(mongo_address);
 
 var Student = require('./models/student.js');
+var StudentData = require('./models/student_data.js');
 
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:' + mongo_address));
@@ -48,6 +49,10 @@ open.then(function (conn) {
     return channelPromise;
 }).then(null, console.warn);
 
+var allStudentCols = function () {
+    return StudentData.find().exec();
+};
+
 app.get('/test', function (req, res) {
     console.log('Hello');
     res.send('Hello');
@@ -56,13 +61,19 @@ app.get('/test', function (req, res) {
 app.get('/students', function (req, res) {
     Student.find(function (err, students) {
         if (err) return res.status(500).send('Error occurred: database error.');
-        res.json(students.map(function (s) {
-            return {
-                name: s.name,
-                uni: s.uni,
-                lastName: s.lastName
-            }
-        }));
+        allStudentCols().then(function (cols) {
+            res.json(students.map(function (s) {
+                var student = {
+                    name: s.name,
+                    uni: s.uni,
+                    lastName: s.lastName
+                };
+                cols.forEach(function (col) {
+                    student[col.name] = s[col.name] || null;
+                });
+                return student;
+            }));
+        });
     });
     console.log('all students');
 });
@@ -127,6 +138,40 @@ app.delete('/students/:uni', function (req, res) {
     });
     CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.params.uni})));
 });
+
+
+app.get('/student_schema', function (req, res) {
+    allStudentCols()
+        .then(function (cols) {
+            var colDefs = cols.map(function (c) {
+                return {
+                    name: c.name,
+                    type: c.type
+                }
+            });
+            res.json(colDefs);
+        }, function (err) {
+            res.status(500).send('Error occurred: database error. ' + err.toString());
+        });
+    console.log('all columns');
+});
+
+app.post('/student_schema', jsonParser, function (req, res) {
+    console.log('received data ' + JSON.stringify(req.body));
+    if (!req.body.name)
+        return res.status(400).send('New columd definition needs at least a name');
+    var name = req.body.name,
+        type = req.body.type || 'String';
+    var s = new StudentData({
+        name: name,
+        type: type
+    });
+    s.save(function (err, s) {
+        if (err) return res.status(500).send('Error occurred: database error.');
+        res.json({id: s._id});
+    });
+});
+
 
 var server = app.listen(PORT, function () {
     var host = server.address().address;
