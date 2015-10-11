@@ -7,14 +7,24 @@ var RABBITMQ_IP = process.env.RABBITMQ_PORT_5672_TCP_ADDR || RABBITMQ_DEFAULT_IP
 
 var EXCHANGE = 'exchange';
 
-var COURSE_MANAGER_API_IP = 'localhost';
+var COURSE_MANAGER_DEFAULT_IP = '192.168.59.103';
+var COURSE_MANAGER_DEFAULT_PORT = 8090;
+var COURSE_MANAGER_PORT = process.env.COURSES_PORT_8090_TCP_PORT || COURSE_MANAGER_DEFAULT_PORT;
+var COURSE_MANAGER_IP = process.env.COURSES_PORT_8090_TCP_ADDR || COURSE_MANAGER_DEFAULT_IP;
 
 var onStudentDeleted = function (uni) {
     console.log('Student with uni=' + uni + ' was deleted');
-    //request.delete({
-    //    url: COURSE_MANAGER_API_IP + '/courses/killStudent/' + uni
-    //}, function (error, response, body) {
-    //});
+    var url = 'http://' + COURSE_MANAGER_IP + ':' + COURSE_MANAGER_PORT + '/courses/killStudent/' + uni;
+    console.log(url);
+    request.del({
+        url: url
+    }, function (error, response) {
+        if (!error && response.statusCode === 200) {
+            console.log('Request to delete student from course manager successful');
+        } else {
+            console.log('Error: ' + error.toString());
+        }
+    });
 }
 
 var onStudentAdded = function (uni) {
