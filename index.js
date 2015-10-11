@@ -7,11 +7,17 @@ var RABBITMQ_IP = process.env.RABBITMQ_PORT_5672_TCP_ADDR || RABBITMQ_DEFAULT_IP
 
 var EXCHANGE = 'exchange';
 
-var onStudentDeleted = function(uni) {
+var COURSE_MANAGER_API_IP = 'localhost';
+
+var onStudentDeleted = function (uni) {
     console.log('Student with uni=' + uni + ' was deleted');
+    //request.delete({
+    //    url: COURSE_MANAGER_API_IP + '/courses/killStudent/' + uni
+    //}, function (error, response, body) {
+    //});
 }
 
-var onStudentAdded = function(uni) {
+var onStudentAdded = function (uni) {
     console.log('Student with uni=' + uni + ' was added');
 }
 

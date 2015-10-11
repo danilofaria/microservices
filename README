@@ -1,0 +1,2 @@
+docker build -t df2553/logreader .
+docker run -d --link rabbit:rabbitmq --name logreader df2553/logreader
