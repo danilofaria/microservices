@@ -125,7 +125,7 @@ app.delete('/students/:uni', function (req, res) {
         if (err) return res.status(500).send('Error occurred: database error.');
         res.json({id: s._id});
     });
-    CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.body.uni})));
+    CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.params.uni})));
 });
 
 var server = app.listen(PORT, function () {
