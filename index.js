@@ -13,6 +13,9 @@ var RABBITMQ_PORT = process.env.RABBITMQ_PORT_5672_TCP_PORT || RABBITMQ_DEFAULT_
 var RABBITMQ_DEFAULT_IP = '192.168.59.103';
 var RABBITMQ_IP = process.env.RABBITMQ_PORT_5672_TCP_ADDR || RABBITMQ_DEFAULT_IP;
 
+var EXCHANGE = 'exchange';
+var CHANNEL;
+
 var express = require('express');
 var bodyParser = require('body-parser');
 // create application/json parser
@@ -34,13 +37,13 @@ db.once('open', function (callback) {
     console.log('succesfully connected to mongodb');
 });
 
-var open = require('amqplib').connect('amqp://' + RABBITMQ_DEFAULT_IP);
-open.then(function(conn) {
+var open = require('amqplib').connect('amqp://' + RABBITMQ_IP);
+open.then(function (conn) {
     var channelPromise = conn.createChannel();
-    channelPromise = channelPromise.then(function(channel) {
+    channelPromise = channelPromise.then(function (channel) {
         console.log('connected to RabbitMQ!');
-        channel.assertQueue('queue');
-        channel.sendToQueue('queue', new Buffer('something to do'));
+        channel.assertExchange(EXCHANGE, 'topic', {durable: false});
+        CHANNEL = channel;
     });
     return channelPromise;
 }).then(null, console.warn);
@@ -94,6 +97,7 @@ app.post('/students', jsonParser, function (req, res) {
         res.json({id: s._id});
     });
 
+    CHANNEL.publish(EXCHANGE, 'students.new', new Buffer(JSON.stringify({uni: req.body.uni})));
 });
 
 app.put('/students/:uni', jsonParser, function (req, res) {
@@ -121,6 +125,7 @@ app.delete('/students/:uni', function (req, res) {
         if (err) return res.status(500).send('Error occurred: database error.');
         res.json({id: s._id});
     });
+    CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.body.uni})));
 });
 
 var server = app.listen(PORT, function () {
