@@ -23,7 +23,7 @@ var findRoutingUrl = function (request_url) {
     });
 };
 
-var getAll = function(resource) {
+var getAll = function (resource) {
     return function (url) {
         var resolver = Promise.pending();
         request({
@@ -68,6 +68,18 @@ var getJson = function (req) {
     return resolver.promise;
 };
 
+var handleJson = function (req, res, f) {
+    getJson(req).then(function (json) {
+        return f(json);
+    }).then(function (body) {
+        res.writeHead(200, {'Content-Type': 'application/json'});
+        return res.end(JSON.stringify(body));
+    }).catch(function (error) {
+        res.writeHead(400, {'Content-Type': 'text/plain'});
+        return res.end('Problem posting');
+    });
+};
+
 require('http').createServer(function (req, res) {
     console.log('request!');
 
@@ -83,25 +95,17 @@ require('http').createServer(function (req, res) {
     else {
         if (request_url == '/students/' || request_url == '/students') {
             if (req.method == 'POST') {
-                getJson(req).then(function (student) {
+                handleJson(req, res, function (student) {
                     var uni = student.uni;
                     request_url = '/students/' + uni;
                     routing_url = findRoutingUrl(request_url);
                     return postJson(routing_url + '/students', student);
-                }).then(function (body) {
-                    res.writeHead(200, {'Content-Type': 'application/json'});
-                    return res.end(JSON.stringify(body));
-                }).catch(function (error) {
-                    res.writeHead(400, {'Content-Type': 'text/plain'});
-                    return res.end('Problem posting');
                 });
             } else if (req.method == 'GET') {
                 var promises = _.map(students, getAll('/students'));
                 Promise.all(promises)
-                    .then(function (allStudentArrays) {
-                        var allStudents = _.reduce(allStudentArrays, function (t, n) {
-                            return t.concat(n);
-                        });
+                    .then(_.flatten)
+                    .then(function (allStudents) {
                         res.writeHead(200, {'Content-Type': 'application/json'});
                         return res.end(JSON.stringify(allStudents));
                     })
@@ -109,6 +113,26 @@ require('http').createServer(function (req, res) {
                         res.writeHead(400, {'Content-Type': 'text/plain'});
                         return res.end('Problem fetching all students');
                     });
+            }
+        } else if (request_url == '/student_schema/' || request_url == '/student_schema') {
+            if (req.method == 'POST') {
+                getJson(req).then(function (col) {
+                        return Promise.all(_.map(students, function (s) {
+                            return postJson(s + '/student_schema', col);
+                        }));
+                    })
+                    .then(function (r) {
+                        res.writeHead(200, {'Content-Type': 'application/json'});
+                        return res.end(JSON.stringify(r));
+                    })
+                    .catch(function (error) {
+                        res.writeHead(400, {'Content-Type': 'text/plain'});
+                        return res.end('Problem creating student column');
+                    });
+            } else if (req.method == 'GET') {
+                proxy.web(req, res, {
+                    target: students[0]
+                });
             }
         }
     }
