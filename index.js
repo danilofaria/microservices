@@ -8,15 +8,13 @@ var PORT = process.env.PORT || DEFAULT_PORT;
 
 var proxy = httpProxy.createProxy();
 
-var students = ['http://192.168.59.103:8081/students', 'http://192.168.59.103:8082/students'
-    //, 'http://192.168.59.103:8083'
-];
+var students = ['http://192.168.59.103:8081', 'http://192.168.59.103:8082', 'http://192.168.59.103:8083'];
 
 var routes = {
     'http://192.168.59.103:8081': /students\/[a-hA-H]/i,
     'http://192.168.59.103:8082': /students\/[i-qI-Q]/i,
     'http://192.168.59.103:8083': /students\/[r-zR-Z]/i,
-    'http://192.168.59.103:8084': /courses/i
+    'http://192.168.59.103:8090': /courses/i
 }
 
 var findRoutingUrl = function (request_url) {
@@ -28,7 +26,7 @@ var findRoutingUrl = function (request_url) {
 var getAllStudents = function (url) {
     var resolver = Promise.pending();
     request({
-        url: url,
+        url: url + '/students',
         json: true
     }, function (error, response, body) {
         if (!error && response.statusCode === 200) {
@@ -69,6 +67,8 @@ var getJson = function (req) {
 };
 
 require('http').createServer(function (req, res) {
+    console.log('request!');
+
     var request_url = req.url,
         routing_url = findRoutingUrl(request_url);
 
