@@ -69,7 +69,7 @@ app.get('/students', function (req, res) {
                     lastName: s.lastName
                 };
                 cols.forEach(function (col) {
-                    student[col.name] = s[col.name] || null;
+                    student[col.name] = s.get(col.name) || null;
                 });
                 return student;
             }));
@@ -84,10 +84,17 @@ app.get('/students/:uni', function (req, res) {
         if (!s)
             return res.status(404).send('Student not found');
         console.log(s);
-        res.json({
+        var student = {
             name: s.name,
             uni: s.uni,
             lastName: s.lastName
+        };
+
+        allStudentCols().then(function (cols) {
+            cols.forEach(function (col) {
+                student[col.name] = s.get(col.name) || null;
+            });
+            res.json(student);
         });
     });
     console.log('students' + req.params.uni);
@@ -97,15 +104,22 @@ app.post('/students', jsonParser, function (req, res) {
     console.log('received data ' + JSON.stringify(req.body));
     if (!req.body.uni || !req.body.name || !req.body.lastName)
         return res.status(400).send('New student needs at least uni, name and lastName');
-    var s = new Student({
+
+    var student = {
         uni: req.body.uni,
         name: req.body.name,
         lastName: req.body.lastName
-    });
+    };
 
-    s.save(function (err, s) {
-        if (err) return res.status(500).send('Error occurred: database error.');
-        res.json({id: s._id});
+    allStudentCols().then(function (cols) {
+        cols.forEach(function (col) {
+            student[col.name] = req.body[col.name] || null;
+        });
+        var s = new Student(student);
+        s.save(function (err, s) {
+            if (err) return res.status(500).send('Error occurred: database error.');
+            res.json({id: s._id});
+        });
     });
 
     CHANNEL.publish(EXCHANGE, 'students.new', new Buffer(JSON.stringify({uni: req.body.uni})));
@@ -113,27 +127,31 @@ app.post('/students', jsonParser, function (req, res) {
 
 app.put('/students/:uni', jsonParser, function (req, res) {
     console.log('received data ' + JSON.stringify(req.body));
-    Student.findOne({'uni': req.params.uni}, function (err, s) {
-        if (err) return res.status(500).send('Error occurred: database error.');
-        if (!s)
-            return res.status(404).send('Student not found');
-        if (req.body.name)
-            s.name = req.body.name;
-        if (req.body.lastName)
-            s.name = req.body.lastName;
-        s.save();
-        res.json({
-            name: s.name,
-            uni: s.uni,
-            lastName: s.lastName
+    var update = {};
+    if (req.body.name)
+        update.name = req.body.name;
+    if (req.body.lastName)
+        update.lastName = req.body.lastName;
+    allStudentCols().then(function (cols) {
+        cols.forEach(function (col) {
+            if (req.body[col.name])
+                update[col.name] = req.body[col.name];
+        });
+        Student.findOneAndUpdate({'uni': req.params.uni}, update, function (err, s) {
+            if (err) return res.status(500).send('Error occurred: database error.');
+            if (!s)
+                return res.status(404).send('Student not found');
+            res.json(
+                {updated: update}
+            );
         });
     });
 });
 
-// todo: return 404 if non existing uni
 app.delete('/students/:uni', function (req, res) {
     Student.findOneAndRemove({'uni': req.params.uni}, function (err, s) {
         if (err) return res.status(500).send('Error occurred: database error.');
+        if (!s) return res.status(404).send('Student not found.');
         res.json({id: s._id});
     });
     CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.params.uni})));
