@@ -23,27 +23,29 @@ var findRoutingUrl = function (request_url) {
     });
 };
 
-var getAllStudents = function (url) {
-    var resolver = Promise.pending();
-    request({
-        url: url + '/students',
-        json: true
-    }, function (error, response, body) {
-        if (!error && response.statusCode === 200) {
-            resolver.resolve(body);
-        } else {
-            resolver.reject(error);
-        }
-    });
-    return resolver.promise;
+var getAll = function(resource) {
+    return function (url) {
+        var resolver = Promise.pending();
+        request({
+            url: url + resource,
+            json: true
+        }, function (error, response, body) {
+            if (!error && response.statusCode === 200) {
+                resolver.resolve(body);
+            } else {
+                resolver.reject(error);
+            }
+        });
+        return resolver.promise;
+    };
 };
 
-var postStudent = function (url, student) {
+var postJson = function (url, json) {
     var resolver = Promise.pending();
     request.post({
         headers: {'content-type': 'application/json'},
         url: url,
-        body: JSON.stringify(student)
+        body: JSON.stringify(json)
     }, function (error, response, body) {
         if (!error && response.statusCode === 200) {
             resolver.resolve(body);
@@ -85,7 +87,7 @@ require('http').createServer(function (req, res) {
                     var uni = student.uni;
                     request_url = '/students/' + uni;
                     routing_url = findRoutingUrl(request_url);
-                    return postStudent(routing_url + '/students', student);
+                    return postJson(routing_url + '/students', student);
                 }).then(function (body) {
                     res.writeHead(200, {'Content-Type': 'application/json'});
                     return res.end(JSON.stringify(body));
@@ -94,7 +96,7 @@ require('http').createServer(function (req, res) {
                     return res.end('Problem posting');
                 });
             } else if (req.method == 'GET') {
-                var promises = _.map(students, getAllStudents);
+                var promises = _.map(students, getAll('/students'));
                 Promise.all(promises)
                     .then(function (allStudentArrays) {
                         var allStudents = _.reduce(allStudentArrays, function (t, n) {
