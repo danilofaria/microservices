@@ -4,7 +4,7 @@ var courseSchema = mongoose.Schema({
     code: String,
     title: String,
     students: [{ uni: String }]
-});
+}, {strict: false});
 courseSchema.index({ code: 1}, { unique: true });
 var Course = mongoose.model('Course', courseSchema);
 

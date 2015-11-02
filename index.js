@@ -1,4 +1,4 @@
-var DEFAULT_PORT = 8080;
+var DEFAULT_PORT = 8090;
 var PORT = process.env.PORT || DEFAULT_PORT;
 var MONGO_DEFAULT_PORT = 27017;
 var MONGO_PORT = process.env.MONGO_PORT_27017_TCP_PORT || MONGO_DEFAULT_PORT;
@@ -39,7 +39,9 @@ app.get('/courses', function (req, res) {
             return {
                 title: c.title,
                 code: c.code,
-                students: c.students
+                students: _.map(c.students, function (s) {
+                    return {'uni': s.uni};
+                })
             }
         }));
     });
@@ -62,7 +64,26 @@ app.post('/courses', jsonParser, function (req, res) {
     });
 });
 
-app.post('/courses/students/:code', jsonParser, function (req, res) {
+app.get('/courses/:code', function (req, res) {
+    Course.findOne({'code': req.params.code}, function (err, c) {
+        if (err) return res.status(500).send('Error occurred: database error.');
+        if (!c)
+            return res.status(404).send('Course not found');
+        console.log(c);
+        var course = {
+            code: c.code,
+            title: c.title,
+            students: _.map(c.students, function (s) {
+                return {'uni': s.uni};
+            })
+        };
+        res.json(course);
+    });
+    console.log('course' + req.params.code);
+});
+
+
+app.post('/courses/:code/students', jsonParser, function (req, res) {
     console.log('received data ' + JSON.stringify(req.body));
     if (!req.body.uni)
         return res.status(400).send('Student`s uni is necessary');
@@ -81,7 +102,24 @@ app.post('/courses/students/:code', jsonParser, function (req, res) {
     });
 });
 
-app.delete('/courses/students/:code', jsonParser, function (req, res) {
+app.get('/courses/:code/students', function (req, res) {
+    Course.findOne({'code': req.params.code}, function (err, c) {
+        if (err) return res.status(500).send('Error occurred: database error.');
+        if (!c)
+            return res.status(404).send('Course not found');
+        console.log(c);
+        var course = {
+            students: _.map(c.students, function (s) {
+                return {'uni': s.uni};
+            })
+        };
+        res.json(course);
+    });
+    console.log('course' + req.params.code);
+});
+
+
+app.delete('/courses/:code/students', jsonParser, function (req, res) {
     console.log('received data ' + JSON.stringify(req.body));
     if (!req.body.uni)
         return res.status(400).send('Student`s uni is necessary');
