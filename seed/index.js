@@ -87,7 +87,7 @@ var addStudentsToCourse = function(c) {
     _.each(c.students, function(uni) {
         request.post({
             headers: {'content-type': 'application/json'},
-            url: url + '/courses/students/' + c.code,
+            url: url + '/courses/' + c.code + '/students',
             body: JSON.stringify({'uni' : uni})
         }, function (error, response, body) {
             if (!error && response.statusCode === 200) {
