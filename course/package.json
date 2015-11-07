@@ -1,0 +1,17 @@
+{
+  "name": "course",
+  "version": "1.0.0",
+  "description": "Course Management",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Danilo Faria",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.14.1",
+    "express": "^4.13.3",
+    "lodash": "^3.10.1",
+    "mongoose": "^4.1.10"
+  }
+}
