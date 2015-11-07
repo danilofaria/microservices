@@ -1,0 +1,9 @@
+docker run --name mongo1 -p 27017:27017 -d mongo
+docker run -d --hostname my-rabbit --name rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-management
+
+docker build -t df2553/students .
+--link rabbit:rabbitmq
+docker run -d -e PORT=8081 -p 8081:8081 --link mongo1:mongo --name students1 df2553/students
+docker run -d -p 8080:8080 --link mongo1:mongo --name students2 df2553/students
+
+docker run -d -e PORT=8082 -p 8082:8082 --link mongo2:mongo --name students2 df2553/students
