@@ -1,0 +1,15 @@
+docker rm -f $(docker ps -a -q)
+
+docker run --name mongo1 -d mongo
+docker run --name mongo2 -d mongo
+docker run --name mongo3 -d mongo
+docker run --name mongo4 -d mongo
+
+docker run -d --hostname my-rabbit --name rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-management
+
+docker run -d -e PORT=8081 -p 8081:8081 --link mongo1:mongo --link rabbit:rabbitmq --name students1 df2553/students
+docker run -d -e PORT=8082 -p 8082:8082 --link mongo2:mongo --link rabbit:rabbitmq --name students2 df2553/students
+docker run -d -e PORT=8083 -p 8083:8083 --link mongo3:mongo --link rabbit:rabbitmq --name students3 df2553/students
+
+docker run -d -e PORT=8090 -p 8090:8090 --link mongo4:mongo --name courses df2553/courses
+docker run -d --link rabbit:rabbitmq --link courses:courses --name logreader df2553/logreader

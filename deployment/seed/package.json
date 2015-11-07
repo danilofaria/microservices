@@ -1,0 +1,16 @@
+{
+  "name": "seed",
+  "version": "1.0.0",
+  "description": "docker run --name mongo1 -d mongo docker run --name mongo2 -d mongo docker run --name mongo3 -d mongo docker run --name mongo4 -d mongo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^2.10.2",
+    "lodash": "^3.10.1",
+    "request": "^2.65.0"
+  }
+}

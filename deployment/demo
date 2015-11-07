@@ -1,0 +1,22 @@
+fab deploy1
+fab deploy2
+fab seed
+
+localhost:8000/students
+192.168.59.103:8083/students/
+localhost:8000/students/alj123
+
+POST localhost:8000/student_schema
+{
+    "name": "degree",
+    "type": "String"
+}
+
+PUT localhost:8000/students/alj123
+{
+    "degree": "masters"
+}
+
+localhost:8000/courses/
+
+DELETE localhost:8000/students/alj123
