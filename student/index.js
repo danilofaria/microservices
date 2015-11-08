@@ -3,35 +3,16 @@ console.log('Hi!');
 var DEFAULT_PORT = 8080;
 var PORT = process.env.PORT || DEFAULT_PORT;
 
-var RABBITMQ_DEFAULT_PORT = 5672;
-var RABBITMQ_PORT = process.env.RABBITMQ_PORT_5672_TCP_PORT || RABBITMQ_DEFAULT_PORT;
-var RABBITMQ_DEFAULT_IP = '192.168.59.103';
-var RABBITMQ_IP = process.env.RABBITMQ_PORT_5672_TCP_ADDR || RABBITMQ_DEFAULT_IP;
-
-var EXCHANGE = 'exchange';
-var CHANNEL;
-
 var express = require('express');
 var bodyParser = require('body-parser');
 // create application/json parser
 var jsonParser = bodyParser.json()
-// create application/x-www-form-urlencoded parser
-var urlencodedParser = bodyParser.urlencoded({extended: false})
+
 var app = express();
 app.use(require('body-parser').urlencoded({extended: true}));
 
-var open = require('amqplib').connect('amqp://' + RABBITMQ_IP);
-open.then(function (conn) {
-    var channelPromise = conn.createChannel();
-    channelPromise = channelPromise.then(function (channel) {
-        console.log('connected to RabbitMQ!');
-        channel.assertExchange(EXCHANGE, 'topic', {durable: false});
-        CHANNEL = channel;
-    });
-    return channelPromise;
-}).then(null, console.warn);
-
-var StudentDAO = require('./dao/studentDAO.js');
+var StudentDAO = require('./dao/student_dao.js'),
+    StudentPubSub = require('./pubsub/student_pubsub.js');
 
 app.get('/test', function (req, res) {
     console.log('Hello');
@@ -64,7 +45,7 @@ app.post('/students', jsonParser, function (req, res) {
     StudentDAO.createStudent(req.body)
         .then(function (s) {
             res.json(s);
-            CHANNEL.publish(EXCHANGE, 'students.new', new Buffer(JSON.stringify({uni: req.body.uni})));
+            StudentPubSub.onStudentCreated(req.body.uni);
         })
         .catch(function (err) {
             res.status(err.code).send(err.message);
@@ -86,7 +67,7 @@ app.delete('/students/:uni', function (req, res) {
     StudentDAO.deleteStudent(req.params.uni)
         .then(function (r) {
             res.json(r);
-            CHANNEL.publish(EXCHANGE, 'students.delete', new Buffer(JSON.stringify({uni: req.params.uni})));
+            StudentPubSub.onStudentDeleted(req.params.uni);
         })
         .catch(function (err) {
             res.status(err.code).send(err.message);
