@@ -1,4 +1,5 @@
 docker run --name mongo1 -p 27017:27017 -d mongo
+docker run --name mongo1 -v /home/docker/mongo/db1:/data/db -p 27017:27017 -d mongo --smallfiles
 docker run -d --hostname my-rabbit --name rabbit -p 15672:15672 -p 5672:5672 rabbitmq:3-management
 
 docker build -t df2553/students .
