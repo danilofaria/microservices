@@ -1,4 +1,11 @@
 from fabric.api import local
+import csv
+
+def loadAWSCredentials():
+    with open('credentials.csv', 'r') as credentials:
+        reader = csv.reader(credentials, delimiter=',')
+        access_key_id, secret_access_key = [row for row in reader][1][1:3]
+    return (access_key_id, secret_access_key)
 
 def boot2docker_up():
     local("boot2docker up")
