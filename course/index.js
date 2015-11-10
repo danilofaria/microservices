@@ -80,7 +80,7 @@ app.delete('/courses/:code/students', jsonParser, function (req, res) {
     });
 });
 
-app.delete('/courses/killStudent/:uni', jsonParser, function (req, res) {
+app.delete('/courses/students/:uni', jsonParser, function (req, res) {
     var uni = req.params.uni;
     console.log('received data ' + JSON.stringify(req.body));
     CourseDAO.deleteStudentFromAllCourses(uni)
