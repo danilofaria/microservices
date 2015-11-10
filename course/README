@@ -1,3 +1,4 @@
 docker build -t df2553/courses .
 docker run --name mongo4 -d mongo
+docker run --name mongo4 -v /home/docker/mongo/db4:/data/db -p 27017:27017 -d mongo --smallfiles
 docker run -d -e PORT=8090 -p 8090:8090 --link mongo4:mongo --name courses df2553/courses
