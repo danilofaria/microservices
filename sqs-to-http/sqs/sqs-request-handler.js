@@ -7,7 +7,7 @@ var sqsRequestHandler = function sqsRequestHandler(sqs) {
     this.sqs = sqs;
 
     //sqs.sendMessageAsync({
-    //    MessageBody: "{'bunda': 'suja'}",
+    //    MessageBody: '{"name":"Albert","uni":"aljpopo","lastName":"Junior"}',
     //    MessageAttributes: {
     //        replyTo: {
     //            DataType: 'String',
@@ -19,11 +19,11 @@ var sqsRequestHandler = function sqsRequestHandler(sqs) {
     //        },
     //        route: {
     //            DataType: 'String',
-    //            StringValue: 'pipi'
+    //            StringValue: 'students'
     //        },
     //        method: {
     //            DataType: 'String',
-    //            StringValue: 'pipi'
+    //            StringValue: 'post'
     //        }
     //    }
     //})
