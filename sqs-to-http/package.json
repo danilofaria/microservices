@@ -1,5 +1,5 @@
 {
-  "name": "finance",
+  "name": "sqs-to-http",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -12,6 +12,7 @@
     "aws-sdk": "^2.2.15",
     "bluebird": "^3.0.5",
     "chalk": "^1.1.1",
-    "express": "^4.13.3"
+    "express": "^4.13.3",
+    "lodash": "^3.10.1"
   }
 }
