@@ -18,5 +18,11 @@ PUT localhost:8000/students/alj123
 }
 
 localhost:8000/courses/
+localhost:8000/courses/SOC3645
+localhost:8000/courses/SOC3645/students
+
+DELETE localhost:8000/courses/SOC3645/students
+{"uni" : "hl525"}
 
 DELETE localhost:8000/students/alj123
+localhost:8000/courses/
