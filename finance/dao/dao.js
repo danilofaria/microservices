@@ -34,10 +34,13 @@ DAO.prototype.validateParams = function (params) {
 };
 
 DAO.prototype.getAll = function () {
+    return this.getAllWithParams();
+};
+
+DAO.prototype.getAllWithParams = function (params) {
     var _this = this;
-    return this.model.findAsync()
+    return this.model.findAsync(params)
         .then(function (all) {
-            var popo = '2';
             return _this.columns()
                 .then(function (cols) {
                     return all.map(_this.getAllValuesForColumns(cols));
