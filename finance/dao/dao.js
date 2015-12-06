@@ -5,11 +5,12 @@ var DB_ERROR = 'Error occurred: database error.',
     DAO = function DAO(model, identifierNames, columns, validator) {
         this.model = model;
         this.coreColumns = DAO.computeCoreColumns(model);
+        columns = columns || _.constant(Promise.resolve([]));
         this.columns = function () {
             return columns().then(_.partial(_.union, this.coreColumns))
         };
         this.identifierNames = _.sortBy(identifierNames);
-        this.validator = validator;
+        this.validator = validator || _.constant(true);
     };
 
 DAO.computeCoreColumns = function (model) {
