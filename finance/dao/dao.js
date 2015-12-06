@@ -2,12 +2,22 @@ var Promise = require('bluebird'),
     _ = require('lodash');
 
 var DB_ERROR = 'Error occurred: database error.',
-    DAO = function DAO(model, identifierName, columns, validator) {
+    DAO = function DAO(model, identifierNames, columns, validator) {
         this.model = model;
-        this.columns = columns;
-        this.identifierName = identifierName;
+        this.coreColumns = DAO.computeCoreColumns(model);
+        this.columns = function () {
+            return columns().then(_.partial(_.union, this.coreColumns))
+        };
+        this.identifierNames = _.sortBy(identifierNames);
         this.validator = validator;
     };
+
+DAO.computeCoreColumns = function (model) {
+    var colNames = _.without(_.keysIn(model.schema.paths), '_id', '__v');
+    return _.map(colNames, function (colName) {
+        return {name: colName};
+    });
+};
 
 DAO.prototype.getAllValuesForColumns = function (cols) {
     return function (r) {
@@ -17,6 +27,10 @@ DAO.prototype.getAllValuesForColumns = function (cols) {
         });
         return result;
     };
+};
+
+DAO.prototype.validateParams = function (params) {
+    return _.isEqual(_.sortBy(_.keysIn(params)), this.identifierNames);
 };
 
 DAO.prototype.getAll = function () {
@@ -34,10 +48,11 @@ DAO.prototype.getAll = function () {
         });
 };
 
-DAO.prototype.get = function (identifier) {
-    var _this = this,
-        params = {};
-    params[this.identifierName] = identifier;
+DAO.prototype.get = function (params) {
+    var _this = this;
+    if (!this.validateParams(params)) {
+        return Promise.rejected({error: null, message: 'Please provide correct parameters', code: 500});
+    }
 
     return this.model.findOneAsync(params)
         .catch(function (err) {
@@ -52,9 +67,10 @@ DAO.prototype.get = function (identifier) {
         });
 };
 
-DAO.prototype.destroy = function (identifier) {
-    var params = {};
-    params[this.identifierName] = identifier;
+DAO.prototype.destroy = function (params) {
+    if (!this.validateParams(params)) {
+        return Promise.rejected({error: null, message: 'Please provide correct parameters', code: 500});
+    }
     return this.model.findOneAndRemoveAsync(params)
         .catch(function (err) {
             return Promise.rejected({error: err, message: DB_ERROR, code: 500});
@@ -65,11 +81,12 @@ DAO.prototype.destroy = function (identifier) {
         });
 };
 
-DAO.prototype.update = function (identifier, body) {
+DAO.prototype.update = function (params, body) {
     var _this = this,
-        params = {},
         update = {};
-    params[this.identifierName] = identifier;
+    if (!this.validateParams(params)) {
+        return Promise.rejected({error: null, message: 'Please provide correct parameters', code: 500});
+    }
 
     return this.columns().then(function (cols) {
         cols.forEach(function (col) {
@@ -103,7 +120,7 @@ DAO.prototype.create = function (body) {
 
         return new Promise(function (resolve, reject) {
             r.save(function (err, s) {
-                if (err) return reject({error: err, message: DB_ERROR, code: 500});
+                if (err) return reject({error: err, message: DB_ERROR + ' ' + err.message, code: 500});
                 return resolve({id: s._id});
             });
         });
