@@ -1,0 +1,12 @@
+sudo apt-get update --fix-missing
+sudo apt-get install git-all
+git config --global user.name danilo
+git config --global user.email danilofaria@outlook.com
+ssh-keygen -f ~/.ssh/id_rsa (meninodoido)
+cat ~/.ssh/id_rsa.pub
+open 'https://github.com/settings/ssh'
+lsb_release -a (find out ubuntu version)
+
+sudo touch /etc/apt/sources.list.d/docker.list
+sudo echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' >> /etc/apt/sources.list.d/docker.list
+pushing images to dockerhub: https://docs.docker.com/mac/step_six/
