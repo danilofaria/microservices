@@ -1,7 +1,16 @@
 var Promise = require("bluebird"),
     mongoose = require('mongoose'),
     _ = require('lodash'),
-    config = require('./config/config.js');
+    config = require('./config/config.js'),
+    express = require('express'),
+    bodyParser = require('body-parser'),
+    jsonParser = bodyParser.json(),
+    adminApp = express(),
+    progApp = express(),
+    userApp = express(),
+    app = express();
+
+app.use(bodyParser.urlencoded({extended: true}));
 
 mongoose.connect(config.mongoAddress);
 
@@ -14,8 +23,7 @@ db.once('open', function (callback) {
 var DAO = require('./dao/dao.js'),
     ExtraColumns = Promise.promisifyAll(require('./models/column.js')),
     ExtraColumnsDAO = DAO(ExtraColumns, ['name', 'tenantId']),
-    Student = Promise.promisifyAll(require('./models/student.js')),
-    StudentDAO = DAO(Student, ['uni', 'tenantId']);
+    Student = Promise.promisifyAll(require('./models/student.js'));
 
 var columnGetter = function (tenantId) {
     return ExtraColumnsDAO.getAllWithParams.bind(ExtraColumnsDAO, {tenantId: tenantId});
@@ -25,60 +33,91 @@ var studentDAOFactory = function (tenantId) {
     return DAO(Student, ['uni', 'tenantId'], columnGetter(tenantId));
 };
 
-StudentDAO.getAll()
-    .then(function (r) {
-        console.log('got all students');
-        console.log(r);
-    })
-    .then(ExtraColumnsDAO.getAll.bind(ExtraColumnsDAO))
-    .then(function (r) {
-        console.log('got all columns');
-        console.log(r);
-    })
-    .then(ExtraColumnsDAO.create.bind(ExtraColumnsDAO, {name: 'popocolumn', tenantId: '1'}))
-    .then(function (r) {
-        console.log('create column');
-        console.log(r);
-    })
-    .then(StudentDAO.create.bind(studentDAOFactory('1'), {
-        name: 'popoto',
-        uni: 'someuni',
-        pomba: 'pomba',
-        lastName: 'boomboom',
-        socialSecurityNumber: 'poponumber',
-        tenantId: '1'
+var requestHandlerFactory = function (responseMaker) {
+    return function (req, res) {
+        responseMaker(req)
+            .then(function (cols) {
+                res.json(cols);
+            })
+            .catch(function (err) {
+                res.status(err.code).send(err.message);
+            });
+    }
+};
+
+progApp.route('/user/:userId/schema')
+    .get(requestHandlerFactory(function (req) {
+        return ExtraColumnsDAO.getAllWithParams({tenantId: req.params.userId});
     }))
-    .then(function (r) {
-        console.log('create student');
-        console.log(r);
-    })
-    .then(StudentDAO.getAllWithParams.bind(studentDAOFactory('1'), {tenantId: '1'}))
-    .then(function (r) {
-        console.log('got all with tenant');
-        console.log(r);
-    })
-    .then(StudentDAO.update.bind(studentDAOFactory('1'), {uni: 'someuni', tenantId: '1'}, {popocolumn: 'popocolumnvalue', nonsense: 'nonsense'}))
-    .then(function (r) {
-        console.log('updated student');
-        console.log(r);
-    })
-    .then(StudentDAO.get.bind(studentDAOFactory('1'), {uni: 'someuni', tenantId: '1'}))
-    .then(function (r) {
-        console.log('got student');
-        console.log(r);
-    })
-    .then(StudentDAO.destroy.bind(studentDAOFactory('1'), {uni: 'someuni', tenantId: '1'}))
-    .then(function (r) {
-        console.log('destroyed student');
-        console.log(r);
-    })
-    .then(ExtraColumnsDAO.destroy.bind(ExtraColumnsDAO, {name: 'popocolumn', tenantId: '1'}))
-    .then(function (r) {
-        console.log('destroyed column');
-        console.log(r);
-    })
-    .then(StudentDAO.get.bind(studentDAOFactory('1'), {uni: 'someuni', tenantId: '1'}))
-    .catch(function (err) {
-        console.log('deu merda');
-        console.log(err);
-    });
+    .post(jsonParser, requestHandlerFactory(function (req) {
+        console.log('received data ' + JSON.stringify(req.body));
+        var body = _.merge(req.body, {tenantId: req.params.userId});
+        return ExtraColumnsDAO.create(body);
+    }));
+
+progApp.route('/user/:userId/schema/:colName')
+    .delete(requestHandlerFactory(function (req) {
+        var params = {tenantId: req.params.userId, name: req.params.colName};
+        return ExtraColumnsDAO.destroy(params);
+    }))
+    // todo: when updating columns name, update student collection to reflect column name change
+    .put(jsonParser, requestHandlerFactory(function (req) {
+        var params = {tenantId: req.params.userId, name: req.params.colName};
+        return ExtraColumnsDAO.update(params, req.body);
+    }));
+
+userApp.get('/:userId/students',
+    requestHandlerFactory(function (req) {
+            var tenantId = req.params.userId;
+            return studentDAOFactory(tenantId)
+                .getAllWithParams({tenantId: tenantId});
+        }
+    ));
+
+userApp.route('/:userId/students/:uni')
+    .put(jsonParser,
+        requestHandlerFactory(function (req) {
+            console.log('received data ' + JSON.stringify(req.body));
+            var tenantId = req.params.userId,
+                uni = req.params.uni,
+                params = {tenantId: tenantId, uni: uni};
+            return studentDAOFactory(tenantId)
+                .update(params, req.body);
+        }))
+    .get(requestHandlerFactory(function (req) {
+        var tenantId = req.params.userId,
+            uni = req.params.uni,
+            params = {tenantId: tenantId, uni: uni};
+        return studentDAOFactory(tenantId)
+            .get(params);
+    }));
+
+adminApp.delete('/users/:userId/students/:uni',
+    requestHandlerFactory(function (req) {
+        var tenantId = req.params.userId,
+            uni = req.params.uni,
+            params = {tenantId: tenantId, uni: uni};
+        return studentDAOFactory(tenantId)
+            .destroy(params);
+    }));
+
+adminApp.post('/users/:userId/students', jsonParser,
+    requestHandlerFactory(function (req) {
+        console.log('received data ' + JSON.stringify(req.body));
+        var tenantId = req.params.userId,
+            body = _.merge(req.body, {tenantId: tenantId});
+        return studentDAOFactory(tenantId)
+            .create(body);
+    }));
+
+app.use('/users', userApp);
+adminApp.use('/users', userApp);
+app.use('/prog', progApp);
+app.use('/admin', adminApp);
+
+var server = app.listen(config.port, function () {
+    var host = server.address().address,
+        port = server.address().port;
+
+    console.log('Example app listening at http://%s:%s', host, port);
+});
