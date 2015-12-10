@@ -36,8 +36,8 @@ var studentDAOFactory = function (tenantId) {
 var requestHandlerFactory = function (responseMaker) {
     return function (req, res) {
         responseMaker(req)
-            .then(function (cols) {
-                res.json(cols);
+            .then(function (r) {
+                res.json(r);
             })
             .catch(function (err) {
                 res.status(err.code).send(err.message);

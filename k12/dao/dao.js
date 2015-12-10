@@ -38,7 +38,9 @@ DAO.prototype.get = function (hash) {
     params[this.hashName] = hash;
     return this.model.getAsync(params)
         .then(function (r) {
-            return r.attrs
+            if (r)
+                return r.attrs;
+            return Promise.reject('Record not found');
         });
 };
 
@@ -47,10 +49,10 @@ DAO.prototype.destroy = function (hash) {
     params[this.hashName] = hash;
     return this.model.destroyAsync(params)
         .then(function (r) {
-            return 'deleted';
+            return {message: 'deleted ' + hash};
         });
 };
 
-module.exports = function(model, hashName) {
-  return new DAO(model, hashName);
+module.exports = function (model, hashName) {
+    return new DAO(model, hashName);
 };
