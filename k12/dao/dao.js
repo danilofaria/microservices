@@ -1,4 +1,5 @@
-var _ = require('lodash');
+var _ = require('lodash'),
+    Promise = require('bluebird');
 
 var DAO = function DAO(model, hashName) {
     this.model = model;
