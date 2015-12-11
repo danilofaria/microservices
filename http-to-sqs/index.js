@@ -49,34 +49,34 @@ sqsRequestSender.prototype.pollQueueForMessages = function pollQueueForMessages(
 sqsRequestSender.prototype.pollOnce = function () {
     var _this = this;
     return this.sqs.receiveMessageAsync({
-        WaitTimeSeconds: 3, // Enable long-polling (3-seconds).
-        VisibilityTimeout: 10,
-        MessageAttributeNames: ['All']
-    })
+            WaitTimeSeconds: 3, // Enable long-polling (3-seconds).
+            VisibilityTimeout: 10,
+            MessageAttributeNames: ['All']
+        })
         .then(
-        function handleMessageResolve(data) {
-            if (!data.Messages) {
-                throw(
-                    workflowError(
-                        "EmptyQueue",
-                        new Error("There are no messages to process.")
-                    )
-                );
+            function handleMessageResolve(data) {
+                if (!data.Messages) {
+                    throw(
+                        workflowError(
+                            "EmptyQueue",
+                            new Error("There are no messages to process.")
+                        )
+                    );
+                }
+
+                console.log(data);
+
+                // Process message
+                var message = data.Messages[0],
+                    body = message.Body,
+                    attributes = _.mapValues(message.MessageAttributes, 'StringValue'),
+                    receiptHandle = message.ReceiptHandle,
+                    corrId = attributes.corrId;
+
+                _this.receiveResponse(body, corrId);
+                return receiptHandle;
             }
-
-            console.log(data);
-
-            // Process message
-            var message = data.Messages[0],
-                body = message.Body,
-                attributes = _.mapValues(message.MessageAttributes, 'StringValue'),
-                receiptHandle = message.ReceiptHandle,
-                corrId = attributes.corrId;
-
-            _this.receiveResponse(body, corrId);
-            return receiptHandle;
-        }
-    )
+        )
         .then(function (receiptHandle) {
             return _this.deleteMessage(receiptHandle);
         })
@@ -90,17 +90,17 @@ sqsRequestSender.prototype.receiveResponse = function (body, corrId) {
     resolver.resolve(body);
     delete this.resolversMap[corrId];
     console.log('received response');
-    console.log(body);
+    //console.log(body);
 };
 
 sqsRequestSender.prototype.deleteMessage = function (receiptHandle) {
-    console.log(chalk.green("Deleting:", receiptHandle));
+    //console.log(chalk.yellow("Deleting:", receiptHandle));
     return (
         this.sqs.deleteMessageAsync({
             ReceiptHandle: receiptHandle
         })
     )
-        .then(console.log.bind(null, chalk.green("Message Deleted!")));
+        .then(console.log.bind(null, chalk.yellow("Message Deleted!")));
 };
 
 sqsRequestSender.handleError = function handleError(error) {
@@ -133,11 +133,29 @@ var module_export = function (pollingQueue) {
 
 module.exports = module_export;
 
-// test
-//var sender = module_export('https://sqs.us-east-1.amazonaws.com/575910043716/test2');
-//sender.pollQueueForMessages();
-//sender.sendRequest('https://sqs.us-east-1.amazonaws.com/575910043716/test', 'get', 'students', 'should not matter')
-//    .then(function (response) {
-//        console.log(chalk.green('yay!'));
-//        console.log(chalk.green(response));
-//    });
+var wrapper = function (message, promiser) {
+    return function () {
+        return promiser().then(function (response) {
+                console.log(chalk.green('yay!'));
+                console.log(chalk.green(message));
+                console.log(chalk.green(response));
+            })
+            .catch(function (err) {
+                console.log(chalk.red('something bad happened!'));
+                console.log(chalk.red(err));
+            })
+    };
+};
+
+var sender = module_export('https://sqs.us-east-1.amazonaws.com/575910043716/p2sender'),
+    receiverQueueUrl = 'https://sqs.us-east-1.amazonaws.com/575910043716/p2receiver';
+sender.pollQueueForMessages();
+
+wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students', 'empty'))()
+    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrl, 'post', 'admin/users/1/students', '{"name": "Robert","lastName": "Wall","balance": 10,"socialSecurityNumber": "sddsds","uni": "rob"}')))
+    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrl, 'put', 'admin/users/1/students/rob', '{"balance": 3000}')))
+    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper('delete rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'del', 'admin/users/1/students/rob', 'empty')))
+    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students', 'empty')))
+    .then(console.log.bind(console, chalk.green('THE END')));
