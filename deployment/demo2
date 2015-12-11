@@ -1,0 +1,15 @@
+http://project2.danilofaria.com 
+k12 = :8081
+{"socialSecurityNumber": "blabla", 
+  "name": "Antony", 
+  "birthYear": 1992, 
+  "lastName": "Anderson"}
+
+finance = :8080
+{
+    "name": "Robert",
+    "lastName": "Wall",
+    "balance": 10,
+    "socialSecurityNumber": "sddsds",
+    "uni": "rob"
+}
