@@ -148,14 +148,24 @@ var wrapper = function (message, promiser) {
 };
 
 var sender = module_export('https://sqs.us-east-1.amazonaws.com/575910043716/p2sender'),
-    receiverQueueUrl = 'https://sqs.us-east-1.amazonaws.com/575910043716/p2receiver';
+    receiverQueueUrlFinance = 'https://sqs.us-east-1.amazonaws.com/575910043716/p2receiver',
+    receiverQueueUrlK12 = 'https://sqs.us-east-1.amazonaws.com/575910043716/p2receiverk12';
 sender.pollQueueForMessages();
 
-wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students', 'empty'))()
-    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrl, 'post', 'admin/users/1/students', '{"name": "Robert","lastName": "Wall","balance": 10,"socialSecurityNumber": "sddsds","uni": "rob"}')))
-    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students/rob', 'empty')))
-    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrl, 'put', 'admin/users/1/students/rob', '{"balance": 3000}')))
-    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students/rob', 'empty')))
-    .then(wrapper('delete rob', sender.sendRequest.bind(sender, receiverQueueUrl, 'del', 'admin/users/1/students/rob', 'empty')))
-    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrl, 'get', 'users/1/students', 'empty')))
+wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty'))()
+    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'post', 'admin/users/1/students', '{"name": "Robert","lastName": "Wall","balance": 10,"socialSecurityNumber": "sddsds","uni": "rob"}')))
+    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'put', 'admin/users/1/students/rob', '{"balance": 3000}')))
+    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper('delete rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'del', 'admin/users/1/students/rob', 'empty')))
+    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty')))
+    .then(console.log.bind(console, chalk.green('THE END')))
+    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
+    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'post', 'students', '{"socialSecurityNumber": "blabla","name": "Antony","birthYear": 1992,"lastName": "Anderson"}')))
+    .then(wrapper('get blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
+    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'put', 'students/blabla', '{"lastName": "Kakarot"}')))
+    .then(wrapper('get blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
+    .then(wrapper('delete blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'del', 'students/blabla', 'empty')))
+    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
     .then(console.log.bind(console, chalk.green('THE END')));
+
