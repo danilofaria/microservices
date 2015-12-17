@@ -1,5 +1,5 @@
 {
-  "name": "http-to-sqs",
+  "name": "sqs-request-sender",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
