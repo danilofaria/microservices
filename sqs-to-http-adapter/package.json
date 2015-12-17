@@ -1,5 +1,5 @@
 {
-  "name": "sqs-to-http",
+  "name": "sqs-to-http-adapter",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
