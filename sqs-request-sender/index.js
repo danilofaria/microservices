@@ -2,7 +2,8 @@ var Promise = require("bluebird"),
     AWS = require('aws-sdk'),
     _ = require('lodash'),
     chalk = require('chalk'),
-    uuid = require('node-uuid');
+    uuid = require('node-uuid'),
+    sleep = require('sleep');
 
 var sqsRequestSender = function sqsRequestSender(sqs, replyTo) {
     this.sqs = sqs;
@@ -36,8 +37,11 @@ sqsRequestSender.prototype.sendRequest = function (queue, method, route, body) {
     });
     var resolver = Promise.pending();
     this.resolversMap[corrId] = resolver;
-    return resolver.promise;
-}
+    return resolver.promise.then(function (r) {
+        console.log(chalk.green(method + ' ' + route));
+        return r;
+    });
+};
 
 sqsRequestSender.prototype.pollQueueForMessages = function pollQueueForMessages() {
     console.log(chalk.yellow("Starting long-poll operation."));
@@ -133,11 +137,11 @@ var module_export = function (pollingQueue) {
 
 module.exports = module_export;
 
-var wrapper = function (message, promiser) {
+var wrapper = function (promiser) {
     return function () {
         return promiser().then(function (response) {
                 console.log(chalk.green('yay!'));
-                console.log(chalk.green(message));
+                console.log(chalk.green('response: '));
                 console.log(chalk.green(response));
             })
             .catch(function (err) {
@@ -152,20 +156,25 @@ var sender = module_export('https://sqs.us-east-1.amazonaws.com/575910043716/p2s
     receiverQueueUrlK12 = 'https://sqs.us-east-1.amazonaws.com/575910043716/p2receiverk12';
 sender.pollQueueForMessages();
 
-wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty'))()
-    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'post', 'admin/users/1/students', '{"name": "Robert","lastName": "Wall","balance": 10,"socialSecurityNumber": "sddsds","uni": "rob"}')))
-    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
-    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'put', 'admin/users/1/students/rob', '{"balance": 3000}')))
-    .then(wrapper('get rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
-    .then(wrapper('delete rob', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'del', 'admin/users/1/students/rob', 'empty')))
-    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty')))
+new Promise(function (resolve, reject) {
+    console.log(chalk.green('Start finance micro-service requests'));
+    sleep.sleep(3);
+    resolve();
+}).then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'post', 'admin/users/1/students', '{"name": "Robert","lastName": "Wall","balance": 10,"socialSecurityNumber": "sddsds","uni": "rob"}')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'put', 'admin/users/1/students/rob', '{"balance": 3000}')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students/rob', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'del', 'admin/users/1/students/rob', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlFinance, 'get', 'users/1/students', 'empty')))
     .then(console.log.bind(console, chalk.green('THE END')))
-    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
-    .then(wrapper('create student', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'post', 'students', '{"socialSecurityNumber": "blabla","name": "Antony","birthYear": 1992,"lastName": "Anderson"}')))
-    .then(wrapper('get blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
-    .then(wrapper('update student', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'put', 'students/blabla', '{"lastName": "Kakarot"}')))
-    .then(wrapper('get blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
-    .then(wrapper('delete blabla', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'del', 'students/blabla', 'empty')))
-    .then(wrapper('get all', sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
+    .then(console.log.bind(console, chalk.green('Start K-12 micro-service requests')))
+    .then(sleep.sleep.bind(sleep, 3))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'post', 'students', '{"socialSecurityNumber": "blabla","name": "Antony","birthYear": 1992,"lastName": "Anderson"}')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'put', 'students/blabla', '{"lastName": "Kakarot"}')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students/blabla', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'del', 'students/blabla', 'empty')))
+    .then(wrapper(sender.sendRequest.bind(sender, receiverQueueUrlK12, 'get', 'students', 'empty')))
     .then(console.log.bind(console, chalk.green('THE END')));
-
